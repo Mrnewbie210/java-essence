@@ -217,7 +217,10 @@ export function FocusedCarousel() {
       </div>
 
       {/* ===== LAYER 3: Text Content with Cinematic Fade-In-Up + Blur ===== */}
-      <div className="relative z-20 flex h-full flex-col justify-end px-6 pb-32 sm:justify-center sm:pb-0 md:px-12 lg:px-20">
+      <div
+        className="relative z-20 flex h-full flex-col justify-end px-6 pb-32 transition-opacity duration-500 sm:justify-center sm:pb-0 md:px-12 lg:px-20"
+        style={{ opacity: isModalOpen ? 0 : 1, pointerEvents: isModalOpen ? 'none' : 'auto' }}
+      >
         <div className="max-w-xl" key={`content-${animKey}`}>
           {/* Subtitle badge */}
           <div className="animate-cinematic-title mb-3 md:mb-4">
@@ -255,7 +258,10 @@ export function FocusedCarousel() {
       </div>
 
       {/* ===== LAYER 4: Preview Thumbnail Cards (bottom-right) ===== */}
-      <div className="absolute bottom-6 right-4 z-30 flex gap-3 sm:bottom-8 sm:right-6 md:bottom-10 md:right-10 md:gap-4">
+      <div
+        className="absolute bottom-6 right-4 z-30 flex gap-3 transition-opacity duration-500 sm:bottom-8 sm:right-6 md:bottom-10 md:right-10 md:gap-4"
+        style={{ opacity: isModalOpen ? 0 : 1, pointerEvents: isModalOpen ? 'none' : 'auto' }}
+      >
         {previewIndices.map((productIdx, i) => {
           const product = products[productIdx]
           return (
@@ -291,7 +297,10 @@ export function FocusedCarousel() {
       </div>
 
       {/* ===== Navigation Arrows ===== */}
-      <div className="absolute bottom-6 left-4 z-30 flex items-center gap-3 sm:bottom-8 sm:left-6 md:bottom-10 md:left-10">
+      <div
+        className="absolute bottom-6 left-4 z-30 flex items-center gap-3 transition-opacity duration-500 sm:bottom-8 sm:left-6 md:bottom-10 md:left-10"
+        style={{ opacity: isModalOpen ? 0 : 1, pointerEvents: isModalOpen ? 'none' : 'auto' }}
+      >
         <button
           onClick={prevSlide}
           disabled={isAnimating}
@@ -325,7 +334,10 @@ export function FocusedCarousel() {
       </div>
 
       {/* ===== Section Label (top) ===== */}
-      <div className="absolute left-6 top-20 z-20 md:left-10 md:top-24">
+      <div
+        className="absolute left-6 top-20 z-20 transition-opacity duration-500 md:left-10 md:top-24"
+        style={{ opacity: isModalOpen ? 0 : 1 }}
+      >
         <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/40 md:text-xs">
           Our Premium Selection
         </p>
