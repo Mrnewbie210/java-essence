@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
-import { AnimatePresence, motion } from "framer-motion"
 
 /**
  * Hero background gallery — cycles through product & farmer images
  * with a cinematic cross-fade + subtle Ken Burns scale effect.
+ * 
+ * Uses pure CSS transitions (no framer-motion) for zero extra bundle size.
  */
 const heroImages = [
   {
@@ -35,10 +36,27 @@ const SLIDE_INTERVAL = 5000 // 5 seconds per slide
 
 export function HeroSection() {
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [prevIndex, setPrevIndex] = useState<number | null>(null)
 
   const nextImage = useCallback(() => {
-    setCurrentIndex((prev) => (prev + 1) % heroImages.length)
+    setCurrentIndex((prev) => {
+      setPrevIndex(prev)
+      return (prev + 1) % heroImages.length
+    })
   }, [])
+
+  const goToSlide = useCallback((index: number) => {
+    if (index === currentIndex) return
+    setPrevIndex(currentIndex)
+    setCurrentIndex(index)
+  }, [currentIndex])
+
+  // Clear prevIndex after transition completes
+  useEffect(() => {
+    if (prevIndex === null) return
+    const timer = setTimeout(() => setPrevIndex(null), 1600)
+    return () => clearTimeout(timer)
+  }, [prevIndex])
 
   // Auto-slide interval
   useEffect(() => {
@@ -50,28 +68,42 @@ export function HeroSection() {
     <section className="relative h-screen overflow-hidden">
       {/* ═══ Auto-Changing Background Gallery ═══ */}
       <div className="absolute inset-0">
-        <AnimatePresence mode="popLayout">
-          <motion.div
-            key={currentIndex}
-            className="absolute inset-0"
-            initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1.15 }}
-            exit={{ opacity: 0, scale: 1.2 }}
-            transition={{
-              opacity: { duration: 1.5, ease: "easeInOut" },
-              scale: { duration: SLIDE_INTERVAL / 1000 + 1.5, ease: "linear" },
+        {/* Previous image — fading out */}
+        {prevIndex !== null && (
+          <div
+            key={`prev-${prevIndex}`}
+            className="absolute inset-0 z-[1]"
+            style={{
+              animation: "heroFadeOut 1.5s ease-in-out forwards",
             }}
           >
             <Image
-              src={heroImages[currentIndex].src}
-              alt={heroImages[currentIndex].alt}
+              src={heroImages[prevIndex].src}
+              alt={heroImages[prevIndex].alt}
               fill
               className="object-cover object-center"
-              priority={currentIndex === 0}
               sizes="100vw"
             />
-          </motion.div>
-        </AnimatePresence>
+          </div>
+        )}
+
+        {/* Current image — fading in + Ken Burns zoom */}
+        <div
+          key={`current-${currentIndex}`}
+          className="absolute inset-0 z-[2]"
+          style={{
+            animation: `heroFadeIn 1.5s ease-in-out forwards, heroKenBurns ${SLIDE_INTERVAL / 1000 + 1.5}s linear forwards`,
+          }}
+        >
+          <Image
+            src={heroImages[currentIndex].src}
+            alt={heroImages[currentIndex].alt}
+            fill
+            className="object-cover object-center"
+            priority={currentIndex === 0}
+            sizes="100vw"
+          />
+        </div>
 
         {/* Gradient overlay — consistent across all slides */}
         <div className="absolute inset-0 z-10 bg-gradient-to-b from-emerald-950/70 via-emerald-950/50 to-emerald-950/95" />
@@ -117,7 +149,7 @@ export function HeroSection() {
         {heroImages.map((_, i) => (
           <button
             key={i}
-            onClick={() => setCurrentIndex(i)}
+            onClick={() => goToSlide(i)}
             className={`h-1.5 rounded-full transition-all duration-500 ${
               i === currentIndex
                 ? "w-7 bg-amber-400"
@@ -136,6 +168,22 @@ export function HeroSection() {
           </div>
         </div>
       </div>
+
+      {/* ═══ CSS Keyframes (scoped via style tag) ═══ */}
+      <style jsx>{`
+        @keyframes heroFadeIn {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        @keyframes heroFadeOut {
+          from { opacity: 1; }
+          to   { opacity: 0; }
+        }
+        @keyframes heroKenBurns {
+          from { transform: scale(1.02); }
+          to   { transform: scale(1.12); }
+        }
+      `}</style>
     </section>
   )
 }
