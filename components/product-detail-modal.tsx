@@ -1,53 +1,52 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { ChevronLeft, ChevronRight, MessageCircle } from "lucide-react"
-
-interface ProductGalleryImage {
-  src: string
-  alt: string
-}
-
-interface ProductSpec {
-  label: string
-  value: string
-}
-
-interface ProductDetailModalProps {
-  children: React.ReactNode
-  title: string
-  origin: string
-  description: string
-  quality: string
-  usage: string
-  gallery: ProductGalleryImage[]
-  specs: ProductSpec[]
-}
+import { useProductModal } from "@/components/product-modal-context"
 
 const whatsappBase = "https://wa.me/6285161200509"
 const whatsappMessage = encodeURIComponent("Halo Java Essence, saya tertarik dengan produk ekspor Anda.")
 
-export function ProductDetailModal({
-  children,
-  title,
-  origin,
-  description,
-  quality,
-  usage,
-  gallery,
-  specs,
-}: ProductDetailModalProps) {
+/**
+ * Standalone product detail modal that reads its state entirely from
+ * ProductModalContext. It is React.memo'd so that it NEVER re-renders
+ * due to sibling/parent changes (e.g. carousel slide transitions).
+ *
+ * Render this component ONCE at the page/layout level.
+ */
+function ProductDetailModalInner() {
+  const { selectedProduct, isModalOpen, closeProductModal } = useProductModal()
+
   const [galleryIndex, setGalleryIndex] = useState(0)
 
-  const nextImage = () => {
-    setGalleryIndex((prev) => (prev + 1) % gallery.length)
-  }
+  // Reset gallery index when a new product is selected
+  useEffect(() => {
+    if (isModalOpen) setGalleryIndex(0)
+  }, [isModalOpen])
 
-  const prevImage = () => {
+  // Lock body scroll when open
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+    return () => {
+      document.body.style.overflow = ""
+    }
+  }, [isModalOpen])
+
+  const gallery = selectedProduct?.gallery ?? []
+
+  const nextImageFn = useCallback(() => {
+    setGalleryIndex((prev) => (prev + 1) % gallery.length)
+  }, [gallery.length])
+
+  const prevImageFn = useCallback(() => {
     setGalleryIndex((prev) => (prev - 1 + gallery.length) % gallery.length)
-  }
+  }, [gallery.length])
 
   // Touch handling for gallery swipe
   const [touchStart, setTouchStart] = useState(0)
@@ -57,15 +56,21 @@ export function ProductDetailModal({
   const handleTouchEnd = (e: React.TouchEvent) => {
     const diff = touchStart - e.changedTouches[0].clientX
     if (Math.abs(diff) > 50) {
-      if (diff > 0) nextImage()
-      else prevImage()
+      if (diff > 0) nextImageFn()
+      else prevImageFn()
     }
   }
 
+  // Don't render anything if no product selected
+  if (!selectedProduct) return null
+
   return (
-    <Dialog>
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto border-white/10 bg-emerald-950/95 p-0 backdrop-blur-xl">
+    <Dialog open={isModalOpen} onOpenChange={(open) => { if (!open) closeProductModal() }}>
+      <DialogContent
+        className="max-h-[90vh] max-w-4xl overflow-y-auto border-white/10 bg-emerald-950/40 p-0 backdrop-blur-2xl"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         {/* Slideable Gallery */}
         <div
           className="relative aspect-[16/9] w-full overflow-hidden bg-black/30"
@@ -92,14 +97,14 @@ export function ProductDetailModal({
 
           {/* Gallery Controls */}
           <button
-            onClick={prevImage}
+            onClick={prevImageFn}
             className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white/80 backdrop-blur-sm transition-all hover:bg-black/60 hover:text-white"
             aria-label="Previous image"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
           <button
-            onClick={nextImage}
+            onClick={nextImageFn}
             className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white/80 backdrop-blur-sm transition-all hover:bg-black/60 hover:text-white"
             aria-label="Next image"
           >
@@ -129,10 +134,10 @@ export function ProductDetailModal({
         <div className="p-6 pt-2 md:p-8 md:pt-3">
           {/* Title */}
           <DialogTitle className="mb-1 font-serif text-2xl font-bold text-white md:text-4xl">
-            {title}
+            {selectedProduct.title}
           </DialogTitle>
           <p className="mb-6 text-sm uppercase tracking-widest text-amber-400">
-            {origin}
+            {selectedProduct.origin}
           </p>
 
           {/* Thumbnail Strip */}
@@ -163,21 +168,21 @@ export function ProductDetailModal({
               <h3 className="mb-2 text-lg font-semibold text-amber-400">
                 Origin Story
               </h3>
-              <p className="text-sm leading-relaxed text-white/80 md:text-base">{description}</p>
+              <p className="text-sm leading-relaxed text-white/80 md:text-base">{selectedProduct.longDescription}</p>
             </div>
 
             <div>
               <h3 className="mb-2 text-lg font-semibold text-amber-400">
                 Quality Standards
               </h3>
-              <p className="text-sm leading-relaxed text-white/80 md:text-base">{quality}</p>
+              <p className="text-sm leading-relaxed text-white/80 md:text-base">{selectedProduct.quality}</p>
             </div>
 
             <div>
               <h3 className="mb-2 text-lg font-semibold text-amber-400">
                 Recommended Usage
               </h3>
-              <p className="text-sm leading-relaxed text-white/80 md:text-base">{usage}</p>
+              <p className="text-sm leading-relaxed text-white/80 md:text-base">{selectedProduct.usage}</p>
             </div>
           </div>
 
@@ -187,7 +192,7 @@ export function ProductDetailModal({
               Technical Specifications
             </h3>
             <div className="grid gap-3 md:grid-cols-2">
-              {specs.map((spec, index) => (
+              {selectedProduct.specs.map((spec, index) => (
                 <div
                   key={index}
                   className="flex items-center justify-between border-b border-white/10 pb-2"
@@ -221,3 +226,10 @@ export function ProductDetailModal({
     </Dialog>
   )
 }
+
+/**
+ * React.memo wrapper — this component will only re-render when its own
+ * context values (selectedProduct, isModalOpen) change. It is completely
+ * immune to carousel state changes.
+ */
+export const ProductDetailModal = React.memo(ProductDetailModalInner)

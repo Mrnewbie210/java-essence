@@ -105,9 +105,9 @@ export function Navbar() {
           className="flex h-full flex-col border-l border-white/10"
           style={{
             background:
-              "linear-gradient(195deg, rgba(6,78,59,0.55) 0%, rgba(6,45,30,0.7) 50%, rgba(0,0,0,0.5) 100%)",
-            backdropFilter: "blur(40px) saturate(180%)",
-            WebkitBackdropFilter: "blur(40px) saturate(180%)",
+              "linear-gradient(195deg, rgba(6,78,59,0.35) 0%, rgba(6,45,30,0.4) 50%, rgba(0,0,0,0.35) 100%)",
+            backdropFilter: "blur(48px) saturate(200%)",
+            WebkitBackdropFilter: "blur(48px) saturate(200%)",
           }}
         >
           {/* Header: Logo + Close */}

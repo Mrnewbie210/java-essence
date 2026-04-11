@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import Image from "next/image"
 import { ChevronRight, ChevronLeft } from "lucide-react"
-import { ProductDetailModal } from "@/components/product-detail-modal"
 import { useOverlay } from "@/components/overlay-context"
+import { useProductModal, type Product } from "@/components/product-modal-context"
 
-const products = [
+const products: Product[] = [
   {
     id: 1,
     title: "Premium Vanilla Beans",
@@ -101,13 +101,29 @@ const products = [
 
 export function FocusedCarousel() {
   const { isOverlayOpen } = useOverlay()
+  const { isModalOpen, openProductModal } = useProductModal()
+
   // order[0] = main background, order[1] = second layer, order[2+] = preview thumbnails
   const [order, setOrder] = useState(() => products.map((_, i) => i))
   const [isAnimating, setIsAnimating] = useState(false)
   const [animKey, setAnimKey] = useState(0) // triggers re-mount for CSS animations
 
+  // Use a ref to track modal state inside the interval callback
+  // This avoids the interval depending on isModalOpen and re-creating
+  const isModalOpenRef = useRef(isModalOpen)
+  useEffect(() => {
+    isModalOpenRef.current = isModalOpen
+  }, [isModalOpen])
+
+  const isOverlayOpenRef = useRef(isOverlayOpen)
+  useEffect(() => {
+    isOverlayOpenRef.current = isOverlayOpen
+  }, [isOverlayOpen])
+
   const nextSlide = useCallback(() => {
     if (isAnimating) return
+    // ABSOLUTE STOP: never advance if modal or overlay is open
+    if (isModalOpenRef.current || isOverlayOpenRef.current) return
     setIsAnimating(true)
     // First item goes to the back
     setOrder((prev) => [...prev.slice(1), prev[0]])
@@ -140,16 +156,24 @@ export function FocusedCarousel() {
     [isAnimating, order]
   )
 
-  // Auto-play — PAUSED when any sidebar/modal overlay is open
+  // ── Auto-play with ABSOLUTE STOP when modal/overlay is open ──────────
   useEffect(() => {
-    if (isOverlayOpen) return // Don't run timer when menus are open
-    const timer = setInterval(nextSlide, 6000)
+    // If the modal is open, do NOT even create the interval. FULL STOP.
+    if (isModalOpen || isOverlayOpen) return
+
+    const timer = setInterval(() => {
+      // Double-check via ref inside the tick (belt-and-suspenders)
+      if (isModalOpenRef.current || isOverlayOpenRef.current) return
+      nextSlide()
+    }, 6000)
+
     return () => clearInterval(timer)
-  }, [nextSlide, isOverlayOpen])
+  }, [nextSlide, isModalOpen, isOverlayOpen])
 
   // Keyboard navigation
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      if (isModalOpenRef.current) return // Don't navigate carousel while modal is open
       if (e.key === "ArrowRight") nextSlide()
       if (e.key === "ArrowLeft") prevSlide()
     }
@@ -217,24 +241,15 @@ export function FocusedCarousel() {
             {mainProduct.description}
           </p>
 
-          {/* CTA Button → Opens Product Detail Modal */}
+          {/* CTA Button — uses global context to open modal */}
           <div className="animate-cinematic-btn">
-            <ProductDetailModal
-              title={mainProduct.title}
-              origin={mainProduct.origin}
-              description={mainProduct.longDescription}
-              quality={mainProduct.quality}
-              usage={mainProduct.usage}
-              gallery={mainProduct.gallery}
-              specs={mainProduct.specs}
+            <button
+              onClick={() => openProductModal(mainProduct)}
+              className="group inline-flex items-center gap-3 rounded-full border border-amber-400/40 bg-amber-400/10 px-7 py-3.5 text-sm font-semibold uppercase tracking-wider text-white backdrop-blur-md transition-all duration-300 hover:border-amber-400 hover:bg-amber-400/20 hover:shadow-[0_0_30px_rgba(251,191,36,0.25)] md:px-8 md:py-4 md:text-base"
             >
-              <button
-                className="group inline-flex items-center gap-3 rounded-full border border-amber-400/40 bg-amber-400/10 px-7 py-3.5 text-sm font-semibold uppercase tracking-wider text-white backdrop-blur-md transition-all duration-300 hover:border-amber-400 hover:bg-amber-400/20 hover:shadow-[0_0_30px_rgba(251,191,36,0.25)] md:px-8 md:py-4 md:text-base"
-              >
-                See More
-                <ChevronRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-              </button>
-            </ProductDetailModal>
+              See More
+              <ChevronRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+            </button>
           </div>
         </div>
       </div>
@@ -315,6 +330,8 @@ export function FocusedCarousel() {
           Our Premium Selection
         </p>
       </div>
+
+      {/* ===== NO MODAL HERE — it's rendered at the page level now ===== */}
     </section>
   )
 }
