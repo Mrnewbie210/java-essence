@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useOverlay } from "@/components/overlay-context"
 import {
   MessageCircle,
   Mail,
@@ -16,6 +17,7 @@ import {
 
 export function MobileShortcut() {
   const [open, setOpen] = useState(false)
+  const { registerOverlay, unregisterOverlay } = useOverlay()
 
   const whatsappLink =
     "https://wa.me/6285161200509?text=" +
@@ -61,6 +63,7 @@ export function MobileShortcut() {
   // Toggle body scroll + Escape key
   const handleClose = useCallback(() => setOpen(false), [])
 
+  // Escape key + body scroll lock + overlay registration
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") handleClose()
@@ -68,14 +71,17 @@ export function MobileShortcut() {
     if (open) {
       document.addEventListener("keydown", handleEscape)
       document.body.style.overflow = "hidden"
+      registerOverlay()
     } else {
       document.body.style.overflow = ""
+      unregisterOverlay()
     }
     return () => {
       document.removeEventListener("keydown", handleEscape)
       document.body.style.overflow = ""
+      if (open) unregisterOverlay()
     }
-  }, [open, handleClose])
+  }, [open, handleClose, registerOverlay, unregisterOverlay])
 
   return (
     <>

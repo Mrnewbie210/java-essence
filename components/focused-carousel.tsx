@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react"
 import Image from "next/image"
 import { ChevronRight, ChevronLeft } from "lucide-react"
 import { ProductDetailModal } from "@/components/product-detail-modal"
+import { useOverlay } from "@/components/overlay-context"
 
 const products = [
   {
@@ -99,6 +100,7 @@ const products = [
 ]
 
 export function FocusedCarousel() {
+  const { isOverlayOpen } = useOverlay()
   // order[0] = main background, order[1] = second layer, order[2+] = preview thumbnails
   const [order, setOrder] = useState(() => products.map((_, i) => i))
   const [isAnimating, setIsAnimating] = useState(false)
@@ -138,11 +140,12 @@ export function FocusedCarousel() {
     [isAnimating, order]
   )
 
-  // Auto-play
+  // Auto-play — PAUSED when any sidebar/modal overlay is open
   useEffect(() => {
+    if (isOverlayOpen) return // Don't run timer when menus are open
     const timer = setInterval(nextSlide, 6000)
     return () => clearInterval(timer)
-  }, [nextSlide])
+  }, [nextSlide, isOverlayOpen])
 
   // Keyboard navigation
   useEffect(() => {

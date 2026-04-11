@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useOverlay } from "@/components/overlay-context"
 import {
   Menu,
   X,
@@ -16,6 +17,19 @@ import {
 
 export function Navbar() {
   const [open, setOpen] = useState(false)
+  const { registerOverlay, unregisterOverlay } = useOverlay()
+
+  // Tell the carousel to pause auto-play when sidebar is open
+  useEffect(() => {
+    if (open) {
+      registerOverlay()
+    } else {
+      unregisterOverlay()
+    }
+    return () => {
+      if (open) unregisterOverlay()
+    }
+  }, [open, registerOverlay, unregisterOverlay])
 
   const linkStyles =
     "text-sm font-medium text-white/90 transition-all duration-300 hover:text-white hover:underline hover:underline-offset-4 cursor-pointer"
@@ -127,13 +141,7 @@ export function Navbar() {
               <Link
                 key={link.href + link.label}
                 href={link.href}
-                onClick={() => setOpen(false)}
                 className="group flex items-center gap-3.5 rounded-xl px-3 py-3.5 transition-all duration-250 hover:bg-white/[0.07] active:scale-[0.98]"
-                style={{
-                  opacity: open ? 1 : 0,
-                  transform: open ? "translateX(0)" : "translateX(16px)",
-                  transition: `opacity 0.35s ease ${index * 50 + 150}ms, transform 0.35s ease ${index * 50 + 150}ms, background 0.2s`,
-                }}
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.03] transition-all duration-200 group-hover:border-amber-400/20 group-hover:bg-amber-400/10">
                   <link.icon className="h-4 w-4 text-white/40 transition-colors duration-200 group-hover:text-amber-400" />
@@ -153,13 +161,7 @@ export function Navbar() {
               href={whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => setOpen(false)}
               className="mt-3 flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3.5 transition-all duration-300 hover:border-emerald-400/40 hover:bg-emerald-500/20 active:scale-[0.98]"
-              style={{
-                opacity: open ? 1 : 0,
-                transform: open ? "translateY(0)" : "translateY(8px)",
-                transition: "opacity 0.4s ease 500ms, transform 0.4s ease 500ms, background 0.3s, border-color 0.3s",
-              }}
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-400 to-emerald-600 shadow-[0_4px_12px_rgba(52,211,153,0.3)]">
                 <MessageCircle className="h-5 w-5 text-white" />
